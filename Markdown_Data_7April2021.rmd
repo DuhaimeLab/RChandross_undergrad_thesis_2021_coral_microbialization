@@ -1,0 +1,536 @@
+---
+title: "Thesis Data"
+author: "Rebecca"
+date: "4/2/2021"
+output:
+  html_document:
+    code_folding: hide
+    highlight: haddock
+    keep_md: yes
+    number_sections: no
+    toc: yes
+    toc_float:
+      collapsed: no
+      smooth_scroll: yes
+      toc_depth: 3
+---
+```{r setup, include=FALSE}
+require(knitr)
+knitr::opts_chunk$set(eval = TRUE, 
+                      echo = TRUE, 
+                      cache = FALSE,
+                      include = TRUE,
+                      collapse = FALSE,
+                      dependson = NULL,
+                      engine = "R", # Chunks will always have R code, unless noted
+                      error = TRUE,
+                      dev = c("png", "pdf", "svg"),
+                      fig.path="figures/",  # Set the figure options
+                      fig.align = "center",
+                      message=TRUE,
+                      warning=TRUE
+                      #, 
+                      # fig.width = 6,
+                      # fig.height = 6
+                      )
+```
+
+# Motivation
+
+This analysis is intended to answer:
+How does cell size (length, width, volume) change in response to increased dissolved organic carbon (DOC) in the water column? This study specifically examines the feasibility of using farmed coral in a laboratory setting to model the DDAM Hypothesis. 
+
+
+
+# Setup and File Import
+
+
+## Load libraries
+```{r Library, warning = FALSE, include = FALSE, echo = FALSE, error = FALSE}
+library(ggplot2)
+library(tidyverse)
+library(DT)
+library(vegan)
+library(data.table)
+library(dplyr)
+library(reshape2)
+library(rcompanion)
+library(rstatix)
+library(broom)
+#library(brms)
+library(ggpubr)
+library(wesanderson)
+
+zissou <- wes_palette("Zissou1")
+
+#theme_update(plot.title = element_text(hjust = 0.5))
+```
+
+## Load data
+```{r Loading_data, include = TRUE}
+meta <- read.csv("~/Desktop/Liss/Data/Metadata.tsv", header = TRUE, sep = "\t", na.strings="")
+
+MIC_118 <- read.csv("~/Desktop/Liss/Data/MIC_118.tsv", header = TRUE, sep = "\t", na.strings="")
+
+MIC_25 <- read.csv("~/Desktop/Liss/Data/MIC_25.tsv", header = TRUE, sep = "\t", na.strings="")
+
+MIC_44 <- read.csv("~/Desktop/Liss/Data/MIC_44.tsv", header = TRUE, sep = "\t", na.strings="")
+
+MIC_47 <- read.csv("~/Desktop/Liss/Data/MIC_47.tsv", header = TRUE, sep = "\t", na.strings="")
+
+
+MIC_53 <- read.csv("~/Desktop/Liss/Data/MIC_53.tsv", header = TRUE, sep = "\t", na.strings="")
+
+MIC_69 <- read.csv("~/Desktop/Liss/Data/MIC_69.tsv", header = TRUE, sep = "\t", na.strings="")
+
+MIC_81 <- read.csv("~/Desktop/Liss/Data/MIC_81.tsv", header = TRUE, sep = "\t", na.strings="")
+
+MIC_125 <- read.csv("~/Desktop/Liss/Data/MIC_125.tsv", header = TRUE, sep = "\t", na.strings="")
+
+MIC_178 <- read.csv("~/Desktop/Liss/Data/MIC_178.tsv", header = TRUE, sep = "\t", na.strings="")
+
+MIC_193 <- read.csv("~/Desktop/Liss/Data/MIC_193.tsv", header = TRUE, sep = "\t", na.strings="")
+
+
+MIC_107 <- read.csv("~/Desktop/Liss/Data/MIC_107.tsv", header = TRUE, sep = "\t", na.strings="")
+
+MIC_97 <- read.csv("~/Desktop/Liss/Data/MIC_97.tsv", header = TRUE, sep = "\t", na.strings="")
+
+MIC_212 <- read.csv("~/Desktop/Liss/Data/MIC_212.tsv", header = TRUE, sep = "\t", na.strings="")
+
+MIC_161 <- read.csv("~/Desktop/Liss/Data/MIC_161.tsv", header = TRUE, sep = "\t", na.strings="")
+
+MIC_203 <- read.csv("~/Desktop/Liss/Data/MIC_203.tsv", header = TRUE, sep = "\t", na.strings="")
+
+MIC_242 <- read.csv("~/Desktop/Liss/Data/MIC_242.tsv", header = TRUE, sep = "\t", na.strings="")
+
+MIC_273 <- read.csv("~/Desktop/Liss/Data/MIC_273.tsv", header = TRUE, sep = "\t", na.strings="")
+
+MIC_262 <- read.csv("~/Desktop/Liss/Data/MIC_262.tsv", header = TRUE, sep = "\t", na.strings="")
+
+MIC_252 <- read.csv("~/Desktop/Liss/Data/MIC_252.tsv", header = TRUE, sep = "\t", na.strings="")
+
+
+FVM_252 <- read.csv("~/Desktop/Liss/Data/FVM_252.tsv", header = TRUE, sep = "\t", na.strings="")
+
+meta <- read.csv("~/Desktop/Liss/Data/Metadata.tsv", header = TRUE, sep = "\t", na.strings="")
+
+MIC_44['Sample_ID'] = 'MIC_044'
+MIC_47['Sample_ID'] = 'MIC_047'
+MIC_252['Sample_ID'] = 'MIC_252'
+MIC_262['Sample_ID'] = 'MIC_262'
+MIC_273['Sample_ID'] = 'MIC_273'
+MIC_242['Sample_ID'] = 'MIC_242'
+MIC_203['Sample_ID'] = 'MIC_203'
+MIC_161['Sample_ID'] = 'MIC_161'
+MIC_97['Sample_ID'] = 'MIC_097'
+MIC_212['Sample_ID'] = 'MIC_212'
+MIC_107['Sample_ID'] = 'MIC_107'
+MIC_118['Sample_ID'] = 'MIC_118'
+MIC_125['Sample_ID'] = 'MIC_125'
+MIC_178['Sample_ID'] = 'MIC_178'
+MIC_193['Sample_ID'] = 'MIC_193'
+MIC_69['Sample_ID'] = 'MIC_069'
+MIC_81['Sample_ID'] = 'MIC_081'
+MIC_25['Sample_ID'] = 'MIC_025'
+MIC_53['Sample_ID'] = 'MIC_053'
+FVM_252['Sample_ID'] = 'FVM_252'
+
+Full_Table<-rbind(MIC_107,MIC_252,MIC_262,FVM_252,MIC_273,MIC_242,MIC_203,MIC_161,MIC_212,MIC_107,MIC_193,MIC_178,MIC_125,MIC_81,MIC_69,MIC_53,MIC_44,MIC_47,MIC_25,MIC_118)
+#dim(Full_Table)
+
+Full_merge<-inner_join(meta, Full_Table, by = "Sample_ID")
+
+#Full_Merge_Melt<-melt(data=Full_merge, id.vars=c("Sample_ID", "Timepoint",  "DOC_Treatment")) 
+```
+
+I noticed that there were some negative volume calculations. I suspected it may be due to the `Length-Width` component of the volume formula and wondered if the longest measured edge was sometimes reported as the width term. Indeed, that was sometimes the case. So I compared the length and width columns and took the largest value as a new column `Length_long` and the smaller of the two values as `Width_short`. From here I recalculated the volume formula in the column `Volume_r`. That is what should be used for Volume throughout.
+
+I also wanted to create a numerical representation of the DOC_Treatment, e.g., `DOC_1` is called `1`.
+```{r data_cleaning, include=TRUE}
+# Fixing the length and width values
+Full_merge$Length_long<-pmax(Full_merge$Length, Full_merge$Width)
+Full_merge$Width_short<-pmin(Full_merge$Length, Full_merge$Width)
+Full_merge$Volume_r = pi/4*(Full_merge$Width_short^2)*(Full_merge$Length_long-Full_merge$Width_short/3)
+
+# Creating the new column with the numerical representation of DOC Treatment and then for Timepoint too
+Full_merge<-Full_merge %>% 
+  mutate(DOC_num = case_when(
+    endsWith(DOC_Treatment, "0") ~ "0",
+    endsWith(DOC_Treatment, "1") ~ "1",
+    endsWith(DOC_Treatment, "2") ~ "2",
+    endsWith(DOC_Treatment, "3") ~ "3",
+    TRUE                      ~ NA_character_
+  ))
+
+Full_merge$DOC_num <- as.numeric(Full_merge$DOC_num)
+
+Full_merge<-Full_merge %>% 
+  mutate(Time_num = case_when(
+    endsWith(Timepoint, "0") ~ "0",
+    endsWith(Timepoint, "1") ~ "1",
+    endsWith(Timepoint, "2") ~ "2",
+    endsWith(Timepoint, "3") ~ "3",
+    endsWith(Timepoint, "4") ~ "4",
+    TRUE                      ~ NA_character_
+  ))
+
+Full_merge$Time_num <- as.numeric(Full_merge$Time_num)
+
+```
+# Plots 
+
+For each dependent variable (Length, Width, Volume) a boxplot was created examining the effects of varying DOC treatments. AVOVAs tests were then run to determine overall significance, modeled using effects parameterization, followed by a Tukey test to run a pairwise comparison to examine significant differences between all group means. Finally a means parameterization was run to estimates coefficients that reflect the group means. 
+
+## Length and Width Analysis 
+```{r DOC_BoxPlot_Length, include = TRUE, fig.width = 3}
+ggplot(data = Full_merge, mapping=aes(x = DOC_Treatment, y = Length_long)) +
+  geom_jitter(alpha = 0.25)+
+  geom_boxplot(alpha=0.8) +
+  scale_y_continuous(trans = 'log10')+ 
+  labs(x = "", y = "Length (µm)")+ 
+  ggtitle("Cell length distributions") +
+  theme_bw()
+
+Full_merge %>%
+	group_by(DOC_Treatment) %>%
+	summarise(Median_Length_um = median(Length_long), Min_Length_um= min(Length_long),  Max_Length_um= max(Length_long))
+```
+
+```{r DOC_BoxPlot_Length_by_time, include = TRUE}
+ggplot(data = Full_merge, mapping=aes(x = DOC_Treatment, y = Length_long, fill=Timepoint, color =Timepoint)) +
+  #geom_jitter(alpha = 0.55, aes(color=Timepoint))+
+  geom_boxplot(alpha=0.5) +
+  scale_fill_manual(values = wes_palette("Darjeeling1"))+
+  scale_color_manual(values = wes_palette("Darjeeling1"))+
+  scale_y_continuous(trans = 'log10')+ 
+  labs(x = "", y = "Length (µm)")+ 
+  ggtitle("Cell length distributions by DOC Treatment and Timepoint") +
+  theme_bw()
+
+```
+
+```{r DOC_BoxPlot_Width, include = TRUE, fig.width = 3}
+ggplot(data = Full_merge, mapping=aes(x = DOC_Treatment, y = Width_short)) +
+  geom_jitter(alpha = 0.25)+
+  geom_boxplot(alpha=0.8) +
+  scale_y_continuous(trans = 'log10')+ 
+  labs(x = "", y = "Width (µm)")+ 
+  ggtitle("Cell width distributions") +
+  theme_bw()
+
+Full_merge %>%
+	group_by(DOC_Treatment) %>%
+	summarise(Median_Width_um = median(Width_short), Min_Width_um= min(Width_short),  Max_Width_um= max(Width_short))
+```
+
+```{r DOC_BoxPlot_Width_by_time, include = TRUE}
+ggplot(data = Full_merge, mapping=aes(x = DOC_Treatment, y = Width_short, fill = Timepoint, color =Timepoint)) +
+  geom_boxplot(alpha=0.5) +
+  scale_y_continuous(trans = 'log10')+ 
+  scale_fill_manual(values = wes_palette("Darjeeling1"))+
+  scale_color_manual(values = wes_palette("Darjeeling1"))+
+  labs(x = "", y = "Width (µm)")+ 
+  ggtitle("Cell width distributions by DOC Treatment and Timepoint") +
+  theme_bw()
+
+```
+
+
+## Volume Analysis 
+```{r DOC_BoxPlot_Volume, include = TRUE}
+ggplot(data = Full_merge, mapping=aes(x = DOC_Treatment, y = Volume_r)) +
+  geom_boxplot() +
+  #scale_y_continuous(trans = 'log10')+ 
+  labs(x = "", y = "Volume (µm^3)")+
+  ggtitle("Cell volume distributions by DOC Treatment") +
+theme_bw()
+
+```
+
+If the ANOVA residuals are normally distributed, we know the data within each level of the grouping factor is too. So first we create the ANOVA model to determine whether the DOC treatments significantly differ in cell volume. We use two ANOVA methods that perform identical functions, but give slightly different default outputs, which can be handy later.
+We run a Tukey HSD test for multiple comparisons in the ANOVA model.
+```{r ANOVA_volume_by_DOC}
+
+#ANOVA test 1
+DOC_Volume_lm.model <- lm(data=Full_merge, Volume_r ~ DOC_Treatment)
+summary(DOC_Volume_lm.model)
+
+#ANOVA test 2
+DOC_Volume_aov.model <- aov(data=Full_merge, Volume_r ~ DOC_Treatment)
+summary(DOC_Volume_aov.model)
+
+```
+Note the Tukey HSD test with the non-transformed data tells us neither DOC_1 nor DOC_2 treatments significantly differed from DOC_0 (no DOC added control). 
+
+But before continuing with the ANOVA model evaluation, we need to confirm the follow assumptions of the ANOVA test are met (from https://dzchilds.github.io/stats-for-bio/data-transformations.html):
+**Independence.** The experimental units of the data must be independent.
+**Measurement scale.** The response variable is measured on an interval or ratio scale. Here, this is the volume data, which is on an interval scale.
+**Normality.** The residuals are normally distributed in each level of the grouping factor.
+**Equal variance.** The variance in each level of the grouping factor is the same.
+
+### Testing for normality and equal variance
+We check the normality of the data with a histogram. Next to it we plot the Normal QQ and scale-location plots of the ANOVA mode to assess the normality and equal variance assumptions of the ANOVA model.
+```{r hist_QQ_DOC_Volume_data, include = TRUE}
+par(mfrow = c(1, 3)) # combine plots
+plotNormalHistogram(Full_merge$Volume_r)
+title("Raw Volume Histogram")
+plot(DOC_Volume_lm.model, which = 2)
+plot(DOC_Volume_lm.model, which = 3)
+```
+The data in the histogram does not fit a normal distribution (plot on left).
+
+The Q-Q plot indicates heavily right-skewed residuals in the upward curvature of the line (middle plot).
+
+As for the assumptin of equal variance, in the initial box plots we made above, it does look like the data from the different DOC treatments have different scatter. The Scale-location plot (last plot) indicates that variance increases with fitted values.
+
+All three tests indicate that the volume data do not fit a normal distribution. We try both a squart root transformation and log transformation below.You can read more about transformations here: https://rcompanion.org/handbook/I_12.html and  https://dzchilds.github.io/stats-for-bio/data-transformations.html
+#### Square root transformation of volume data
+```{r Volume_sqrt_transform_hist_QQ, include = TRUE}
+
+#ANOVA test 1
+DOC_Volume_sqrt_lm.model <- lm(data=Full_merge, sqrt(Volume_r) ~ DOC_Treatment)
+
+par(mfrow = c(1, 3)) # combine plots
+plotNormalHistogram(sqrt(Full_merge$Volume_r))
+title("Raw Volume Histogram")
+plot(DOC_Volume_sqrt_lm.model, which = 2)
+plot(DOC_Volume_sqrt_lm.model, which = 3)
+
+```
+#### Log transformation of volume data
+```{r Volume_log_transform_hist_QQ, include = TRUE}
+
+
+#ANOVA test 1
+DOC_Volume_log_lm.model <- lm(data=Full_merge, log(Volume_r) ~ DOC_Treatment)
+
+par(mfrow = c(1, 3)) # combine plots
+plotNormalHistogram(log(Full_merge$Volume_r))
+title("Raw Volume Histogram")
+plot(DOC_Volume_log_lm.model, which = 2)
+plot(DOC_Volume_log_lm.model, which = 3)
+
+```
+Log brings the data certainly bring the data to better fit the normal distribution (at least by eye). The residuals are still slightly right-skewed, but not nearly as heavily as the untransformed data. The variance looks much more equal. These are likley only minor violations of ANOVA assumptions and most likley won't strongly influence the ANOVA model predictions. 
+
+When we apply the log transformation in a new column of our data frame called `Volume_log`. 
+
+Then we repeat the ANOVA test with our now normally distributed log-transformed volume data.
+
+```{r ANOVA_log_volume_by_DOC}
+
+#ANOVA test 1
+DOC_Volume_log_lm.model <- lm(data=Full_merge, Volume_r_log ~ DOC_Treatment)
+summary(DOC_Volume_log_lm.model)
+
+#ANOVA test 2
+DOC_Volume_log_aov.model <- aov(data=Full_merge, Volume_r_log ~ DOC_Treatment)
+summary(DOC_Volume_log_aov.model)
+
+TukeyHSD(DOC_Volume_log_aov.model)
+
+# Tukey plot :
+plot(TukeyHSD(DOC_Volume_log_aov.model), las=1, col="brown")
+
+```
+**With the long transformed volume data, cell volumes were significantly different in all pairwise comparisons.** Because the median increased with the fold DOC concentration, this evidence suggests that microbialization and the DDAM process was induced for DOC amendments.
+
+But when smaple sizes are large (like these), even small effects can lead to low p-values), so we should evaluate the effect size. The sample R-squared can be used, which measures the proportion of explained variability in the response (here, cell volume) accounted for by the independent variable (here, DOC_treatment) and estimates some "true" proportion theta. For large samples, even if R-squared is close to zero, the F-test will provide a small p-value.
+
+We next wanted a quick peak at how these trends behaved through time. We will extend our statistical analyses to the time series when we have the complete dataset.
+```{r DOC_BoxPlot_Volume_log_color_jitter_by_time, include = TRUE}
+
+Full_merge$Volume_r_log <- log(Full_merge$Volume_r)
+
+ggplot(data = Full_merge, mapping=aes(x = DOC_Treatment, y = Volume_r_log)) +
+  geom_jitter(alpha = 0.25)+
+  geom_boxplot(alpha=0.8) +
+  labs(x = "", y = "log(Volume (µm^3))")+
+  ggtitle("Cell volume distributions by DOC Treatment") +
+  theme_bw()
+```
+
+```{r DOC_BoxPlot_Volume_log_facet_by_time, include = TRUE}
+
+Full_merge$Volume_r_log <- log(Full_merge$Volume_r)
+
+ggplot(data = Full_merge, mapping=aes(x = DOC_Treatment, y = Volume_r_log, color = Timepoint)) +
+  geom_jitter(aes(colour = Timepoint), alpha = 0.25)+
+  geom_boxplot(alpha=0.8) +
+  labs(x = "", y = "log(Volume (µm^3))")+
+  facet_grid(~Timepoint)+ 
+  scale_color_manual(values = wes_palette("Darjeeling1"))+
+  theme_bw()+ 
+  theme(axis.text.x = element_text(angle = 45, vjust = 0.95, hjust=1))
+
+```
+
+```{r DOC_BoxPlot_Volume_log_color_jitter_by_treatment_by_time, include = TRUE}
+
+Full_merge$Volume_r_log <- log(Full_merge$Volume_r)
+
+ggplot(data = Full_merge, mapping=aes(x = DOC_Treatment, y = Volume_r_log, fill=Timepoint, color = Timepoint)) +
+  #geom_jitter(alpha = 0.25)+
+  geom_boxplot(alpha=0.5) +
+  scale_fill_manual(values = wes_palette("Darjeeling1"))+
+  scale_color_manual(values = wes_palette("Darjeeling1"))+
+  labs(x = "", y = "log(Volume (µm^3))")+ 
+  ggtitle("Cell volume distributions by DOC Treatment and Timepoint") +
+  theme_bw()
+```
+
+
+
+Should there be any doubt that the lack of normality of equal variance influenced the ANOVA significance tests, we also performed the non-parametric test Kruskal Wallis that compares group means but doed not require the normality assumption to be met.
+
+```{r Kruskal_test, include = TRUE}
+DOC_Volume_kruskal.test<- kruskal.test(Volume_r ~ DOC_Treatment, data=Full_merge)
+DOC_Volume_kruskal.test
+
+```
+As we expected due to the minor violations of ANOVA assumptions, this model is also significant (H statistic = 165.35; p-value = < 2.2e-16). There are no nonparametric multiple comparison tests yet written in R, so we can't compare with a Tukey analog here.
+
+### Linear regressions with numerical predictors
+I've been thinking about that DOC parameter. In the ANOVA, the DOC treatments are treated as a group of four levels. But in reality, the relationships between those levels is meaningful. There is an order to them 0-3. But yet they are not truly numerical either. I see it is common practice is to treat predictors like this as continuous, which may be ok. If we do that, we can run a linear regression not with groups, but with numerical values for both Y~X. The tests to use are either Pearson (parametric test) or Spearman (non-parametric test).
+
+#### DOC and cell volume
+
+This can be visualized in this plot:
+```{r Volume_by_DOC_group_by_time, include = TRUE}
+# Predictor vs Criterion {ggplot2} - separate regression lines
+ggplot(data = Full_merge, 
+       aes(x = DOC_num,
+           y = Volume_r_log,
+           colour=Timepoint)) + 
+  geom_smooth(method=lm) + 
+  geom_point(size = 2, alpha=0.25) +
+  scale_colour_manual(values = wes_palette("Darjeeling1"))+
+  ggtitle("Relationship between morning DOC and cell volume") +
+  xlab("DOC Treatment (0-3X)") + ylab("Log cell volume (cm^3)")+ 
+  theme_bw()
+```
+And here are the same parameters, but looking at changes in each Treatment through time.
+```{r Volume_by_time_by_DOC_group, include = TRUE}
+# Predictor vs Criterion {ggplot2} - separate regression lines
+ggplot(data = Full_merge, 
+       aes(x = Time_num,
+           y = Volume_r_log,
+           colour=DOC_Treatment)) + 
+  geom_smooth(method=lm) + 
+  geom_point(size = 1, alpha=0.05) +
+  scale_colour_manual(values = wes_palette("Darjeeling1"))+
+  ggtitle("Relationship between cell volume and time by DOC group") +
+  xlab("Time (days)") + ylab("Log cell volume (cm^3)")+ 
+  theme_bw()
+```
+
+
+Though messy, this shows that for all points after T0, there is a the positive relationship between DOC treatment and cell volume. Again, this is what would be expected in the DDAM progression.
+
+To evaluate the significance of this trend with a Spearman rank correlation test:
+```{r DOC_vol_numerical_linear_regressions, include = TRUE}
+# Assumes both variables are normally distributed, which I would say is not true of the relative DOC values
+#cor.test(~ DOC_num + Volume_r_log, method = "pearson", data = Full_merge)
+
+# Non-parametric, so does not need normally distributed variables
+
+# BY TIMEPOINTS
+cor.test(~ DOC_num + Volume_r, method = "spearman", data = filter(Full_merge, Timepoint == "T0"))
+cor.test(~ DOC_num + Volume_r, method = "spearman", data = filter(Full_merge, Timepoint == "T1"))
+cor.test(~ DOC_num + Volume_r, method = "spearman", data = filter(Full_merge, Timepoint == "T2"))
+cor.test(~ DOC_num + Volume_r, method = "spearman", data = filter(Full_merge, Timepoint == "T3"))
+cor.test(~ DOC_num + Volume_r, method = "spearman", data = filter(Full_merge, Timepoint == "T4"))
+
+```
+There is a significant positive correlation between DOC Treatment and cell volume over the full length of the experiment for all treatments with DOC added. The relationship cell sizes (Spearman: rho = 0.122; p-value = 2.2e-16).
+
+
+#### Dissolved oxygen and cell volume
+```{r Volume_by_DO_by_time, include = TRUE}
+
+ggplot(data = Full_merge, 
+       aes(x = Volume_r_log,
+           y = DO_am,
+           colour=Timepoint)) + 
+  geom_smooth(method=lm) + 
+  geom_point(size = 1, alpha = 0.1) +
+  scale_color_manual(values = wes_palette("Darjeeling1"))+
+  ggtitle("Relationship between dissolved oxygen and cell volume") +
+  xlab("Log cell volume (cm^3)") + ylab("Dissolved oxygen (mg/l)")+ 
+  theme_bw()
+```
+
+```{r DO_vol_numerical_linear_regressions, include = TRUE}
+
+# BY TIMEPOINTS
+cor.test(~ DO_am + Volume_r, method = "spearman", data = filter(Full_merge, Timepoint == "T0"))
+cor.test(~ DO_am + Volume_r, method = "spearman", data = filter(Full_merge, Timepoint == "T1"))
+cor.test(~ DO_am + Volume_r, method = "spearman", data = filter(Full_merge, Timepoint == "T2"))
+cor.test(~ DO_am + Volume_r, method = "spearman", data = filter(Full_merge, Timepoint == "T3"))
+cor.test(~ DO_am + Volume_r, method = "spearman", data = filter(Full_merge, Timepoint == "T4"))
+
+```
+
+There is a significant  negative correlation between morning dissolved oxygen and cell volume at all time points Spearman (p-value < 2.2e-16). Depressed dissolved oxygen values are a signed of increased heterotrophic respiration. 
+
+A negative relationship between DO and cell volumes is what we would expect if the DDAM process was induced.
+
+#### DOC and DO
+```{r DOC_DO_numerical_linear_regressions, include = TRUE}
+
+cor.test(~ DOC_num + DO_am, method = "spearman", data = Full_merge)
+```
+
+There is a strong significant negative correlation between morning dissolved oxygen and DOC treatment, with both Pearson (cor = -0.412; p-value = 2.2e-16) and Spearman (rho = -0.429; p-value = 2.2e-16). Depressed dissolved oxygen values are a sign of increased heterotrophic respiration and indicates our treatment induced the expected metabolic response. However, note this code is the strawman for the full dataset that is coming. This represents the data for only 1 of the 5 replicates of each treatment.
+
+This relationship can be demonstrated here:
+```{r DO_by_DOC_group_by_time, include = TRUE}
+# Predictor vs Criterion {ggplot2} - separate regression lines
+ggplot(data = Full_merge, 
+       aes(x = DO_am,
+           y = DOC_num,
+           colour=Timepoint)) + 
+  geom_smooth(method=lm) + 
+  geom_point(size = 2) +
+  ggtitle("Relationship between morning DO and DOC") +
+  xlab("DOC Treatment (0-3X)") + ylab("Dissolved oxygen (mg/l)")+ 
+  theme_bw()
+```
+After T0, a negative relationship expected between DOC and DO. This was expected as DOC stimulated oxygen consumption.
+
+
+### One way ANCOVA with DOC and dissolved oxygen (DO)
+Here we create a one-way ANCOVA by incorporating morning dissolved oxygen measurements as a covariate variable with the DOC treatment groups. Then we evaluate the behavior to determine whether we will further interpret it (spoiler, we don't).
+
+```{r one_way_ancova, include = TRUE}
+
+Volume_log_DO_DOC_aov.model <- aov(Volume_r_log ~ DOC_Treatment + DO_am, data = Full_merge)
+summary(Volume_log_DO_DOC_aov.model)
+
+
+# Run equivalent linear model
+Volume_log_DO_DOC_lm.model <- lm(Volume_r_log ~ DOC_Treatment + DO_am, data = Full_merge)
+summary(Volume_log_DO_DOC_lm.model)
+
+```
+
+ANCOVA makes several assumptions about the data (from https://www.datanovia.com/en/lessons/ancova-in-r/):
+**Linearity between the covariate and the outcome variable** at each level of the grouping variable. This can be checked by creating a grouped scatter plot of the covariate and the outcome variable.
+**Homogeneity of regression slopes.** The slopes of the regression lines, formed by the covariate and the outcome variable, should be the same for each group. This assumption evaluates that there is no interaction between the outcome and the covariate. The plotted regression lines by groups should be parallel.
+**The outcome variable should be approximately normally distributed.** This can be checked using the Shapiro-Wilk test of normality on the model residuals.
+**Homoscedasticity** or homogeneity of residuals variance for all groups. The residuals are assumed to have a constant variance (homoscedasticity)
+**No significant outliers** in the groups
+
+```{r ancova_linearity_test, include = TRUE}
+
+ggscatter(Full_merge, x = "DO_am", y = "Volume_r_log",
+  color = "DOC_Treatment", add = "reg.line"
+  )+
+  stat_regline_equation(
+    aes(label =  paste(..eq.label.., ..rr.label.., sep = "~~~~"), color = DOC_Treatment)
+    )
+
+```
+I would say this does not pass the linearity test. So we should stop here with the ANCOVA.
+
